@@ -19,6 +19,11 @@ ICON_GIRL = 'girl_3'
 ICON_BLINDS = 'blinds'
 ICON_CONTACT = 'contact'
 ICON_POWER_OUTLET = 'poweroutlet'
+ICON_CLOCK = 'clock'
+ICON_SUN = 'sun'
+ICON_SUESET = 'sunset'
+ICON_SUN_CLOUDS = 'sun_clouds'
+ICON_MOON = 'moon'
 
 
 class OHObject:
@@ -69,20 +74,36 @@ class Item(OHObject):
             item_str = self.type + ' ' + self.name + ' "' + self.label + '" '
         else:
             item_str = self.type + ' ' + self.name + ' "' + self.label + ' ' + self.state_presentation + '" '
+
+        if self.icon:
+            item_str = item_str + '<' + self.icon + '> '
         item_str = self.get_group_list(item_str)
         return item_str
 
 
 class Group(Item):
-    def __init__(self, name: str, label: str, icon: str=None):
+    def __init__(self, name: str, label: str, icon: str=None, item_type: str=None, function: str=None):
         Item.__init__(self, name, label, '', icon)
         self.name = name
         self.label = label
         if not icon:
             self.icon = ICON_GROUP
+        self.item_type = item_type
+        self.function = function
 
     def get_config(self) -> str:
-        group_str = 'Group ' + self.name + ' "' + self.label + '" '
+        group_str = 'Group'
+
+        if self.item_type:
+            group_str = group_str + ':' + self.item_type
+
+        if self.function:
+            group_str = group_str + ':' + self.function
+
+        group_str = group_str + ' ' + self.name + ' "' + self.label + '" '
+
+        if self.icon:
+            group_str = group_str + '<' + self.icon + '> '
         group_str = self.get_group_list(group_str)
         return group_str
 
@@ -95,8 +116,8 @@ class LightbulbItem(Item):
     # Switch GF_Office_Light "Büro EG" (GF_Office, Lights) { knx = "1/1/24+1/4/24" }
     def get_config(self) -> str:
         item_str = self.get_basic_item_config()
-        # <mainGA>+<listeningGA>
-        item_str = item_str + '{ knx="' + OHObject.DPT1_Switch + ':' + self.ga1 + "+" + self.ga2 + '" }'
+        # on/off, state on/off
+        item_str = item_str + '{ knx="' + OHObject.DPT1_Switch + ':' + self.ga1 + "+<" + self.ga2 + '" }'
         return item_str
 
     def get_sitemap_elements(self) -> list:
@@ -104,6 +125,35 @@ class LightbulbItem(Item):
         switch_element = SitemapSwitchElement(self)
         result.append(switch_element)
         return result
+
+    def get_dynamic_sitemap_element(self):
+        return SitemapSwitchElement(self, self.name + '==ON')
+
+
+class DimmableLightbuldItem(Item):
+    def __init__(self, name: str, label: str, icon: str, ga1: str, ga2: str, ga3: str, ga4: str, ga5: str):
+        Item.__init__(self, name, label, '[%d %%]', icon, ga1, ga2, ga3, ga4, ga5)
+        self.type = 'Dimmer'
+
+    def get_config(self) -> str:
+        item_str = self.get_basic_item_config()
+        # on/off, state on/off, increase/decrease/stop, absolute dimming, absolute dimming state
+        item_str = item_str + '{ knx="' + OHObject.DPT1_Switch + ':' + self.ga1 + '+<' + self.ga2
+        item_str = item_str + ', ' + OHObject.DPT3_Dimmer_Step + ':' + self.ga3
+        item_str = item_str + ', ' + OHObject.DPT5_Percent + ':' + self.ga4 + '+<' + self.ga5
+        item_str = item_str + '" }'
+        return item_str
+
+    def get_sitemap_elements(self) -> list:
+        result = []
+        switch_element = SitemapSwitchElement(self)
+        result.append(switch_element)
+        slider_element = SitemapSliderElement(self)
+        result.append(slider_element)
+        return result
+
+    def get_dynamic_sitemap_element(self):
+        return SitemapSwitchElement(self, self.name + '==ON')
 
 
 class ContactSensorItem(Item):
@@ -122,6 +172,9 @@ class ContactSensorItem(Item):
         result.append(text_element)
         return result
 
+    def get_dynamic_sitemap_element(self):
+        pass
+
 
 class RollershutterItem(Item):
     def __init__(self, name: str, label: str, icon: str, ga1: str, ga2: str, ga3: str, ga4: str):
@@ -138,9 +191,14 @@ class RollershutterItem(Item):
 
     def get_sitemap_elements(self) -> list:
         result = []
+        switch = SitemapSwitchElement(self)
+        result.append(switch)
         slider = SitemapSliderElement(self)
         result.append(slider)
         return result
+
+    def get_dynamic_sitemap_element(self):
+        return SitemapSwitchElement(self, self.name + '<100')
 
 
 class JalousieItem(Item):
@@ -165,11 +223,16 @@ class JalousieItem(Item):
 
     def get_sitemap_elements(self) -> list:
         result = []
+        switch_jalousie = SitemapSwitchElement(self)
+        result.append(switch_jalousie)
         slider_jalousie = SitemapSliderElement(self)
         result.append(slider_jalousie)
         slider_lamelle = SitemapSliderElement(self.lamelle)
         result.append(slider_lamelle)
         return result
+
+    def get_dynamic_sitemap_element(self):
+        return SitemapSwitchElement(self, self.name + '<100')
 
 
 class LamelleItem(Item):
@@ -189,38 +252,74 @@ class LamelleItem(Item):
 
 
 class NumberItem(Item):
-    def __init__(self, name: str, label: str, icon: str, ga1: str):
-        Item.__init__(self, name, label, '[%d %%]', icon, ga1)
+    def __init__(self, name: str, label: str, state_presentation: str, icon: str, channel: str):
+        Item.__init__(self, name, label, state_presentation, icon)
         self.type = 'Number'
+        self.channel = channel
 
     def get_config(self) -> str:
         item_str = self.get_basic_item_config()
-        item_str = item_str + '{ knx="' + OHObject.DPT5_Percent + ':' + self.ga1 + '"}'
+        item_str = item_str + '{ channel="' + self.channel + '" }'
         return item_str
 
 
-class SitemapElement:
-    def __init__(self, group: Group):
-        self.item = None
-        self.label = group.label
-        self.state_presentation = None
-        self.icon = group.icon
-        self.type = 'Group'
-        self.block = None
+class DateTimeItem(Item):
+    def __init__(self, name: str, label: str, state_presentation: str, icon: str, channel: str):
+        Item.__init__(self, name, label, state_presentation, icon)
+        self.channel = channel
+        self.type = 'DateTime'
 
-    def __init__(self, item: Item, label: str, state_presentation: str=None, icon: str = None):
+    def get_config(self) -> str:
+        item_str = self.get_basic_item_config()
+        item_str = item_str + ' { channel="' + self.channel + '" }'
+        return item_str
+
+
+class StringItem(Item):
+    def __init__(self, name: str, label: str, state_presentation: str, icon: str, channel: str):
+        Item.__init__(self, name, label, state_presentation, icon)
+        self.channel = channel
+        self.type = 'String'
+
+    def get_config(self) -> str:
+        item_str = self.get_basic_item_config()
+        item_str = item_str + ' { channel="' + self.channel + '" }'
+        return item_str
+
+
+class SwitchItem(Item):
+    def __init__(self, name: str, label: str, state_presentation: str=None):
+        Item.__init__(self, name, label, state_presentation, '')
+        self.type = 'Switch'
+
+    def get_config(self) -> str:
+        item_str = self.get_basic_item_config()
+        return item_str
+
+    def get_sitemap_element(self):
+        return SitemapSwitchElement(self)
+
+
+class SitemapElement:
+    def __init__(self, item: Item, label: str, state_presentation: str=None, icon: str=None, visibility: str=None):
         self.item = item
         self.label = label
         self.state_presentation = state_presentation
         self.icon = icon
         self.type = 'Unknown'
         self.block = []
+        self.visibility = visibility
 
     def add_element(self, element):
         self.block.append(element)
 
     def get_config(self) -> str:
-        element_str = '\t\t' + self.type + ' item=' + self.item.name + ' label="' + self.label
+        if self.item:
+            element_str = '\t\t' + self.type + ' item=' + self.item.name
+        else:
+            element_str = '\t\t' + self.type
+
+        element_str = element_str + ' label="' + self.label
 
         if self.state_presentation:
             element_str = element_str + ' ' + self.state_presentation
@@ -230,20 +329,26 @@ class SitemapElement:
         if self.icon:
                 element_str = element_str + ' icon="' + self.icon + '"'
 
+        if self.visibility:
+            element_str = element_str + ' visibility=[' + self.visibility + ']'
+
         if len(self.block) > 0:
             element_str = element_str + ' {\n'
 
             for element in self.block:
-                element_str = element_str + '\t' + element.get_config() + '\n'
+                element_str = element_str + '\t' + element.get_config()
 
             element_str = element_str + '\t\t}\n'
+        else:
+            element_str = element_str + '\n'
 
         return element_str
 
 
-class Frame:
+class Frame(SitemapElement):
     def __init__(self, label: str):
-        self.label = label
+        SitemapElement.__init__(self, None, label)
+        self.type = 'Frame'
         self.sitemap_elements = []
 
     def add_sitemap_element(self, element: SitemapElement):
@@ -261,18 +366,18 @@ class Frame:
 
 
 class SitemapTextElement(SitemapElement):
-    def __init__(self, item: Item):
-        SitemapElement.__init__(self, item, item.label, item.state_presentation, item.icon)
+    def __init__(self, item: Item, visibility: str=None):
+        SitemapElement.__init__(self, item, item.label, item.state_presentation, item.icon, visibility)
         self.type = 'Text'
 
 
 class SitemapSwitchElement(SitemapElement):
-    def __init__(self, item: Item):
-        SitemapElement.__init__(self, item, item.label, item.state_presentation, item.icon)
+    def __init__(self, item: Item, visibility: str=None):
+        SitemapElement.__init__(self, item, item.label, item.state_presentation, item.icon, visibility)
         self.type = 'Switch'
 
 
 class SitemapSliderElement(SitemapElement):
-    def __init__(self, item: Item):
-        SitemapElement.__init__(self, item, item.label, item.state_presentation, item.icon)
+    def __init__(self, item: Item, visibility: str=None):
+        SitemapElement.__init__(self, item, item.label, item.state_presentation, item.icon, visibility)
         self.type = 'Slider'
