@@ -36,6 +36,7 @@ class Thing:
         self.location = location
         self.parameters = {}
         self.tab_level = 1
+        self.items = []
 
     def get_basic_config(self) -> str:
         config = '\t' * (self.tab_level-1) + self.thing_type + ' ' + self.binding_id + ':' + self.type_id + ':' + self.thing_id
@@ -77,4 +78,3 @@ class Item:
         self.label = label
         self.state_presentation = state_presentation
         self.icon = icon
-
