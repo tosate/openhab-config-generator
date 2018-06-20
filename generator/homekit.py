@@ -1,0 +1,5 @@
+LIGHTING = 'Lighting'
+SWITCHABLE = 'Switchable'
+CURRENTTEMPERATURE = 'CurrentTemperature'
+TARGETTEMPERATURE = 'TargetTemperature'
+BLINDS = 'Blinds'

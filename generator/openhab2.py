@@ -78,3 +78,35 @@ class Item:
         self.label = label
         self.state_presentation = state_presentation
         self.icon = icon
+        self.groups = []
+        self.tags = []
+
+    def add_tag(self, tag: str):
+        self.tags.append(tag)
+
+    def get_binding_config(self):
+        return ''
+
+    def get_config(self):
+        config = self.item_type + ' ' + self.name + ' "' + self.label + ' ' + self.state_presentation + '" '
+        if self.icon:
+            config = config + '<' + self.icon + '> '
+
+        if len(self.groups) > 0:
+            config = config + '('
+
+            for group in self.groups:
+                config = config + group + ', '
+
+            config = config[:len(config) - 2] + ') '
+
+        if len(self.tags) > 0:
+            config = config + '['
+
+            for tag in self.tags:
+                config = config + '"' + tag + '", '
+
+            config = config[:len(config) - 2] + '] '
+
+        config = config + self.get_binding_config()
+        return config
