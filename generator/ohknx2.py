@@ -1,14 +1,16 @@
 import openhab2
 
 
-class KnxItem(openhab2.Item):
-    def __init__(self, item_type: str, name: str, label: str, state_presentation: str, icon: str):
-        openhab2.Item.__init__(self, item_type, name, label, state_presentation, icon)
+class KnxChannelType:
+    def __init__(self, channel_type: str, name: str, label: str):
+        self.channel_type = channel_type
+        self.name = name
+        self.label = label
         self.channel = ''
         self.parent_thing = None
 
     def get_knx_thing_config(self) -> str:
-        config = 'Type ' + self.item_type.lower() + ' : ' + self.name + ' "' + self.label + '" [ '\
+        config = 'Type ' + self.channel_type.lower() + ' : ' + self.name + ' "' + self.label + '" [ '\
                  + self.get_knx_parameter_config() + ' ]'
         return config
 
@@ -28,8 +30,8 @@ class KnxItem(openhab2.Item):
 
 
 class KnxThing(openhab2.Thing):
-    def __init__(self, name: str, actuator_address: str):
-        openhab2.Thing.__init__(self, '', 'device', name, '', '')
+    def __init__(self, actuator_name: str, actuator_label: str, actuator_address: str):
+        openhab2.Thing.__init__(self, '', 'device', actuator_name, actuator_label, 'KNX')
 
         self.parameters['actuator_address'] = actuator_address
         self.parameters['fetch'] = True
@@ -40,6 +42,9 @@ class KnxThing(openhab2.Thing):
 
     def get_basic_config(self):
         config = '\t' * (self.tab_level-1) + self.thing_type + ' ' + self.type_id + ' ' + self.thing_id
+
+        if self.label:
+            config = config + ' "' + self.label + ' ' + self.parameters['actuator_address'] + '"'
 
         return config
 
@@ -55,9 +60,9 @@ class KnxThing(openhab2.Thing):
 
         return config
 
-    def add_item(self, item: KnxItem):
-        item.set_parent_thing(self)
-        self.items.append(item)
+    def add_channel_type(self, channel_type: KnxChannelType):
+        channel_type.set_parent_thing(self)
+        self.items.append(channel_type)
 
 
 class KnxBridge(openhab2.Thing):
@@ -84,15 +89,15 @@ class KnxBridge(openhab2.Thing):
         if len(self.things) > 0:
             config = config + ' {'
             for thing in self.things:
-                config = config + '\n' + '\t' * self.tab_level + thing.get_knx_thing_config() + ','
+                config = config + '\n' + '\t' * self.tab_level + thing.get_knx_config() + ','
             config = config[:len(config)-1] + '\n}'
 
         return config
 
 
-class SwitchItem(KnxItem):
-    def __init__(self, name: str, label: str, icon: str, main_ga: str, listening_ga: str):
-        KnxItem.__init__(self, 'Switch', name, label, '[%s]', icon)
+class KnxSwitchChannelType(KnxChannelType):
+    def __init__(self, name: str, label: str, main_ga: str, listening_ga: str):
+        KnxChannelType.__init__(self, 'Switch', name, label)
         self.main_ga = main_ga
         self.listening_ga = listening_ga
 
@@ -101,10 +106,10 @@ class SwitchItem(KnxItem):
         return config
 
 
-class DimmerItem(KnxItem):
-    def __init__(self, name: str, label: str, icon: str, main_ga: str, listening_ga: str, position_ga: str,
+class KnxDimmerChannelType(KnxChannelType):
+    def __init__(self, name: str, label: str, main_ga: str, listening_ga: str, position_ga: str,
                  listening_position_ga: str, increase_decrease_ga: str):
-        KnxItem.__init__(self, 'Dimmer', name, label, '[%d %%]', icon)
+        KnxChannelType.__init__(self, 'Dimmer', name, label)
         self.main_ga = main_ga
         self.listening_ga = listening_ga
         self.position_ga = position_ga
@@ -117,10 +122,10 @@ class DimmerItem(KnxItem):
         return config
 
 
-class RollershutterItem(KnxItem):
+class KnxRollershutterChannelType(KnxChannelType):
     def __init__(self, name: str, label: str, up_down_ga: str, stop_move_ga: str, position_ga: str,
                  listening_position_ga: str):
-        KnxItem.__init__(self, 'Rollershutter', name, label, '[%d %%]', openhab2.ICON_BLINDS)
+        KnxChannelType.__init__(self, 'Rollershutter', name, label)
         self.up_down_ga = up_down_ga
         self.stop_move_ga = stop_move_ga
         self.position_ga = position_ga
@@ -132,9 +137,9 @@ class RollershutterItem(KnxItem):
         return config
 
 
-class ContactItem(KnxItem):
+class KnxContactChannelType(KnxChannelType):
     def __init__(self, name: str, label: str, main_ga: str):
-        KnxItem.__init__(self, 'Contact', name, label, '', openhab2.ICON_CONTACT)
+        KnxChannelType.__init__(self, 'Contact', name, label)
         self.main_ga = main_ga
 
     def get_knx_parameter_config(self) -> str:

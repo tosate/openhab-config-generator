@@ -1,7 +1,5 @@
 import csv
 
-from pip._vendor.distlib.util import ServerProxy
-
 import ohobjects
 
 COLUMN_NAME = 'name'
