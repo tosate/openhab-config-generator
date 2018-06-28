@@ -20,20 +20,12 @@ class KnxChannelType:
     def set_parent_thing(self, parent: object):
         self.parent_thing = parent
 
-    def get_channels(self) -> str:
-        channel = 'channel="knx:device:bridge:' + self.parent_thing.thing_id + ':' + self.name + '"'
-        return channel
-
-    def get_binding_config(self) -> str:
-        binding = '{ ' + self.get_channels() + ' }'
-        return binding
-
 
 class KnxThing(openhab2.Thing):
     def __init__(self, actuator_name: str, actuator_label: str, actuator_address: str):
         openhab2.Thing.__init__(self, '', 'device', actuator_name, actuator_label, 'KNX')
 
-        self.parameters['actuator_address'] = actuator_address
+        self.parameters['address'] = actuator_address
         self.parameters['fetch'] = True
         self.parameters['pingInterval'] = 300
         self.parameters['readInterval'] = 3600
@@ -44,7 +36,7 @@ class KnxThing(openhab2.Thing):
         config = '\t' * (self.tab_level-1) + self.thing_type + ' ' + self.type_id + ' ' + self.thing_id
 
         if self.label:
-            config = config + ' "' + self.label + ' ' + self.parameters['actuator_address'] + '"'
+            config = config + ' "' + self.label + ' ' + self.parameters['address'] + '"'
 
         return config
 
@@ -69,7 +61,7 @@ class KnxBridge(openhab2.Thing):
     def __init__(self, ip_address: str, port_number: int, local_ip: str):
         openhab2.Thing.__init__(self, 'knx', 'ip', 'bridge', '', '')
         self.thing_type = 'Bridge'
-        self.parameters['ipAddress'] = ip_address
+        self.parameters['ip'] = ip_address
         self.parameters['portNumber'] = port_number
         self.parameters['localIp'] = local_ip
         self.parameters['type'] = 'TUNNEL'
@@ -145,3 +137,39 @@ class KnxContactChannelType(KnxChannelType):
     def get_knx_parameter_config(self) -> str:
         config = 'ga="' + self.main_ga + '"'
         return config
+
+
+class KnxItem(openhab2.Item):
+    def __init__(self, item_type: str, name: str, label: str, state_presentation: str, icon: str, actuator_name: str,
+                 channel_name: str):
+        openhab2.Item.__init__(self, item_type, name, label, state_presentation, icon)
+        self.actuator_name = actuator_name
+        self.channel_name = channel_name
+
+    def get_channels(self) -> str:
+        channel = 'channel="knx:device:bridge:' + self.actuator_name + ':' + self.channel_name + '"'
+        return channel
+
+    def get_binding_config(self) -> str:
+        binding = '{ ' + self.get_channels() + ' }'
+        return binding
+
+
+class SwitchItem(KnxItem):
+    def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
+        KnxItem.__init__(self, 'Switch', name, label, '[%s]', icon, actuator_name, channel_name)
+
+
+class DimmableLightbuldItem(KnxItem):
+    def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
+        KnxItem.__init__(self, 'Dimmer', name, label, '[%d %%]', icon, actuator_name, channel_name)
+
+
+class ContactSensorItem(KnxItem):
+    def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
+        KnxItem.__init__(self, 'Contact', name, label, '', icon, actuator_name, channel_name)
+
+
+class RollershutterItem(KnxItem):
+    def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
+        KnxItem.__init__(self, 'Contact', name, label, '', icon, actuator_name, channel_name)
