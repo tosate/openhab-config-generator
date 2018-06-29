@@ -1,4 +1,4 @@
-from _ctypes import sizeof
+import operator
 
 ICON_HOUSE = 'house'
 ICON_LIGHT = 'light'
@@ -87,6 +87,19 @@ class Item:
     def get_binding_config(self):
         return ''
 
+    def add_group(self, group):
+        self.groups.append(group)
+
+    def get_group_list(self, item_str: str) -> str:
+        if len(self.groups) > 0:
+            item_str = item_str + '('
+            group_names = map(operator.attrgetter('name'), self.groups)
+            separator = ', '
+            item_str = item_str + separator.join(group_names)
+
+            item_str = item_str + ') '
+        return item_str
+
     def get_config(self):
         config = self.item_type + ' ' + self.name + ' "' + self.label + ' ' + self.state_presentation + '" '
         if self.icon:
@@ -110,3 +123,27 @@ class Item:
 
         config = config + self.get_binding_config()
         return config
+
+
+class Group(Item):
+    def __init__(self, name: str, label: str, state_presentation: str, icon: str=None, item_type: str=None,
+                 func: str=None):
+        Item.__init__(self, 'Group', name, label, state_presentation, icon)
+        self.item_type = item_type
+        self.func = func
+
+    def get_config(self) -> str:
+        group_str = 'Group'
+
+        if self.item_type:
+            group_str = group_str + ':' + self.item_type
+
+        if self.func:
+            group_str = group_str + ':' + self.func
+
+        group_str = group_str + ' ' + self.name + ' "' + self.label + '" '
+
+        if self.icon:
+            group_str = group_str + '<' + self.icon + '> '
+        group_str = self.get_group_list(group_str)
+        return group_str

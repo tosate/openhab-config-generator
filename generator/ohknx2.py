@@ -26,9 +26,9 @@ class KnxThing(openhab2.Thing):
         openhab2.Thing.__init__(self, '', 'device', actuator_name, actuator_label, 'KNX')
 
         self.parameters['address'] = actuator_address
-        self.parameters['fetch'] = True
-        self.parameters['pingInterval'] = 300
-        self.parameters['readInterval'] = 3600
+        self.parameters['fetch'] = False
+        self.parameters['pingInterval'] = 600
+        self.parameters['readInterval'] = 0
         self.items = []
         self.tab_level = 2
 
@@ -47,8 +47,8 @@ class KnxThing(openhab2.Thing):
             config = config + ' {'
 
             for item in self.items:
-                config = config + '\n' + '\t' * self.tab_level + item.get_knx_thing_config() + ','
-            config = config[:len(config)-1] + '\n' + '\t' * (self.tab_level-1) + '}'
+                config = config + '\n' + '\t' * self.tab_level + item.get_knx_thing_config()
+            config = config + '\n' + '\t' * (self.tab_level-1) + '}'
 
         return config
 
@@ -61,7 +61,7 @@ class KnxBridge(openhab2.Thing):
     def __init__(self, ip_address: str, port_number: int, local_ip: str):
         openhab2.Thing.__init__(self, 'knx', 'ip', 'bridge', '', '')
         self.thing_type = 'Bridge'
-        self.parameters['ip'] = ip_address
+        self.parameters['ipAddress'] = ip_address
         self.parameters['portNumber'] = port_number
         self.parameters['localIp'] = local_ip
         self.parameters['type'] = 'TUNNEL'
@@ -81,8 +81,8 @@ class KnxBridge(openhab2.Thing):
         if len(self.things) > 0:
             config = config + ' {'
             for thing in self.things:
-                config = config + '\n' + '\t' * self.tab_level + thing.get_knx_config() + ','
-            config = config[:len(config)-1] + '\n}'
+                config = config + '\n' + '\t' * (self.tab_level-1) + thing.get_knx_config()
+            config = config + '\n}'
 
         return config
 
@@ -124,7 +124,7 @@ class KnxRollershutterChannelType(KnxChannelType):
         self.listening_position_ga = listening_position_ga
 
     def get_knx_parameter_config(self) -> str:
-        config = 'upDown="' + self.up_down_ga + '", stopMove="' + self.stop_move_ga + '", position='""\
+        config = 'upDown="' + self.up_down_ga + '", stopMove="' + self.stop_move_ga + '", position="'\
                  + self.position_ga + '+<' + self.listening_position_ga + '"'
         return config
 
@@ -172,4 +172,4 @@ class ContactSensorItem(KnxItem):
 
 class RollershutterItem(KnxItem):
     def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
-        KnxItem.__init__(self, 'Contact', name, label, '', icon, actuator_name, channel_name)
+        KnxItem.__init__(self, 'Rollershutter', name, label, '[%d %%]', icon, actuator_name, channel_name)

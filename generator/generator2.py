@@ -86,6 +86,14 @@ class KnxThingsConfigBuilder:
     def process_jalousie(self, row: dict):
         self.process_rollershutter(row)
         # add Lamelle
+        device_thing = self.get_knx_device_thing(row[COL_ACTUATOR_NAME], row[COL_ACTUATOR_LABEL],
+                                                 row[COL_ACTUATOR_ADDRESS])
+        channel_type_label = 'Channel ' + row[COL_IN_OUT] + ' Lamelle'
+        lamelle_channel_type = ohknx2.KnxRollershutterChannelType(row[COL_CHANNEL_NAME] + '_L', channel_type_label,
+                                                                  row[COL_GA1], row[COL_GA2], row[COL_GA5],
+                                                                  row[COL_GA6])
+        device_thing.add_channel_type(lamelle_channel_type)
+
 
     def write_config(self, filename: str):
         config_file = open(filename, 'w')
@@ -99,6 +107,10 @@ class ItemsConfigBuilder:
     def __init__(self, csv_reader: csv.DictReader):
         self.csv_reader = csv_reader
         self.items = []
+        self.groups = []
+        self.lights_group = openhab2.Group('Lights', 'Eingeschaltete Lampen', '[%d]', openhab2.ICON_LIGHT, 'Switch',
+                                          'OR(ON, OFF)')
+        self.groups.append(self.lights_group)
 
     def process_csv_input(self):
         for row in self.csv_reader:
@@ -116,6 +128,13 @@ class ItemsConfigBuilder:
     def write_config(self, filename: str):
         config_file = open(filename, 'w')
 
+        config_file.write('// Groups\n')
+
+        for group in self.groups:
+            config_file.write(group.get_config() + '\n')
+
+        config_file.write('\n// Items\n')
+
         for item in self.items:
             config_file.write(item.get_config() + '\n')
 
@@ -124,27 +143,35 @@ class ItemsConfigBuilder:
     def process_lightbulb(self, row: dict):
         lightbulb_item = ohknx2.SwitchItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT, row[COL_ACTUATOR_NAME],
                                            row[COL_CHANNEL_NAME])
+        lightbulb_item.add_group(self.lights_group.name)
         self.items.append(lightbulb_item)
 
     def process_dimmer(self, row: dict):
         dimmable_lightbulb_item = ohknx2.DimmableLightbuldItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT,
-                                                   row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+                                                               row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
         self.items.append(dimmable_lightbulb_item)
 
     def process_contact_sensor(self, row: dict):
         contact_sensor_item = ohknx2.ContactSensorItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_CONTACT,
-                                                   row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+                                                       row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
         self.items.append(contact_sensor_item)
 
     def process_rollershutter(self, row: dict):
         rollershutter_item = ohknx2.RollershutterItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_CONTACT,
-                                                   row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+                                                      row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
         self.items.append(rollershutter_item)
 
     def process_jalousie(self, row: dict):
-        jalousie_item = ohknx2.RollershutterItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_CONTACT,
-                                                   row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
-        self.items.append(jalousie_item)
+        self.process_rollershutter(row)
+        lamelle_item = ohknx2.RollershutterItem(row[COL_NAME] + '_Lamelle', row[COL_LABEL] + ' Lamelle',
+                                                openhab2.ICON_CONTACT, row[COL_ACTUATOR_NAME],
+                                                row[COL_CHANNEL_NAME] + '_L')
+        self.items.append(lamelle_item)
+
+    def add_special_items(self):
+        disable_open_rollershutters = openhab2.Item('Switch', 'Disable_Open_Rollershutters', 'Rolläden nicht öffnen',
+                                                    '[%s]', '')
+        self.items.append(disable_open_rollershutters)
 
 
 csv_knx_file = open('../docs/oh2_knx2.csv', 'rt')
@@ -163,4 +190,5 @@ csv_items_reader = csv.DictReader(csv_items_file, items_fieldnames)
 
 items_config_builder = ItemsConfigBuilder(csv_items_reader)
 items_config_builder.process_csv_input()
+items_config_builder.add_special_items()
 items_config_builder.write_config('knx2.items')
