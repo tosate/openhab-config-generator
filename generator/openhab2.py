@@ -147,3 +147,86 @@ class Group(Item):
             group_str = group_str + '<' + self.icon + '> '
         group_str = self.get_group_list(group_str)
         return group_str
+
+
+class SitemapElement:
+    def __init__(self, label: str, state_presentation: str=None, icon: str=None, item_name: str=None, visibility: str=None):
+        self.item_name = item_name
+        self.label = label
+        self.state_presentation = state_presentation
+        self.icon = icon
+        self.type = 'Unknown'
+        self.block = []
+        self.visibility = visibility
+
+    def add_element(self, element):
+        self.block.append(element)
+
+    def get_config(self) -> str:
+        if self.item_name:
+            element_str = '\t\t' + self.type + ' item=' + self.item_name
+        else:
+            element_str = '\t\t' + self.type
+
+        element_str = element_str + ' label="' + self.label
+
+        if self.state_presentation:
+            element_str = element_str + ' ' + self.state_presentation
+
+        element_str = element_str + '"'
+
+        if self.icon:
+                element_str = element_str + ' icon="' + self.icon + '"'
+
+        if self.visibility:
+            element_str = element_str + ' visibility=[' + self.visibility + ']'
+
+        if len(self.block) > 0:
+            element_str = element_str + ' {\n'
+
+            for element in self.block:
+                element_str = element_str + '\t' + element.get_config()
+
+            element_str = element_str + '\t\t}\n'
+        else:
+            element_str = element_str + '\n'
+
+        return element_str
+
+
+class Frame(SitemapElement):
+    def __init__(self, label: str):
+        SitemapElement.__init__(self, label, '')
+        self.type = 'Frame'
+        self.sitemap_elements = []
+
+    def add_sitemap_element(self, element: SitemapElement):
+        self.sitemap_elements.append(element)
+
+    def get_config(self) -> str:
+        frame_str = '\tFrame label="' + self.label + '" {\n'
+
+        for element in self.sitemap_elements:
+            frame_str = frame_str + element.get_config()
+
+        frame_str = frame_str + '\t}\n'
+
+        return frame_str
+
+
+class SitemapTextElement(SitemapElement):
+    def __init__(self, item_name: str, label: str, state_presentation: str, icon: str, visibility: str=None):
+        SitemapElement.__init__(self, label, state_presentation, icon, item_name, visibility)
+        self.type = 'Text'
+
+
+class SitemapSwitchElement(SitemapElement):
+    def __init__(self, item_name: str, label: str, state_presentation: str, icon: str, visibility: str=None):
+        SitemapElement.__init__(self, label, state_presentation, icon, item_name, visibility)
+        self.type = 'Switch'
+
+
+class SitemapSliderElement(SitemapElement):
+    def __init__(self, item_name: str, label: str, state_presentation: str, icon: str, visibility: str=None):
+        SitemapElement.__init__(self, label, state_presentation, icon, item_name, visibility)
+        self.type = 'Slider'
