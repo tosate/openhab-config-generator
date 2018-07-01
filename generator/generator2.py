@@ -30,14 +30,19 @@ TYPE_ROLLERSHUTTER = 'Rollershutter'
 TYPE_JALOUSIE = 'Jalousie'
 TYPE_POWEROUTLET = 'PowerOutlet'
 TYPE_THERMOSTAT = 'Thermostat'
+TYPE_OCCUPANCYSENSOR = 'OccupancySensor'
 
 FRAME_ALL_ROOMS = 'ALL_ROOMS'
 FRAME_ACTIVE_LIGHTS = 'ACTIVE_LIGHTS'
+FRAME_ACTIVE_DIMMERS = 'ACTIVE_DIMMERS'
 FRAME_OPEN_ROLLERSHUTTERS = 'OPEN_ROLLERSHUTTERS'
+FRAME_OPEN_WINDOWS = 'OPEN_WINDOWS'
 FRAME_SPECIAL_FUNCTIONS = 'SPECIAL_FUNCTIONS'
 
 SWITCH_NAME_DYNAMIC_LIGHTS = 'Lights'
 SWITCH_LABEL_DYNAMIC_LIGHTS = 'Eingeschaltete Lampen'
+SWITCH_NAME_DYNAMIC_DIMMERS = 'Dimmers'
+SWITCH_LABEL_DYNAMIC_DIMMERS = 'Eingeschaltete Dimmer'
 SWITCH_NAME_DISABLE_OPEN_BLINDS = 'Disable_Open_Rollershutters'
 SWITCH_LABEL_DISABLE_OPEN_BLINDS = 'Rolläden nicht öffnen'
 
@@ -60,6 +65,8 @@ class ConfigBuilder:
                 self.process_poweroutlet(row)
             elif entry_type == TYPE_THERMOSTAT:
                 self.process_thermostat(row)
+            elif entry_type == TYPE_OCCUPANCYSENSOR:
+                self.process_occupancysensor(row)
 
     def process_lightbulb(self, row: dict):
         pass
@@ -80,6 +87,9 @@ class ConfigBuilder:
         pass
 
     def process_thermostat(self, row: dict):
+        pass
+
+    def process_occupancysensor(self, row: dict):
         pass
 
 
@@ -160,6 +170,14 @@ class KnxThingsConfigBuilder(ConfigBuilder):
                                                          channel_type_label + ' TARGET', row[COL_GA2])
         device_thing.add_channel_type(target_temperature)
 
+    def process_occupancysensor(self, row: dict):
+        device_thing = self.get_knx_device_thing(row[COL_ACTUATOR_NAME], row[COL_ACTUATOR_LABEL],
+                                                 row[COL_ACTUATOR_ADDRESS])
+        channel_type_label = 'Channel ' + row[COL_IN_OUT]
+        switch_channel_type = ohknx2.KnxSwitchChannelType(row[COL_CHANNEL_NAME], channel_type_label, row[COL_GA1],
+                                                            row[COL_GA1])
+        device_thing.add_channel_type(switch_channel_type)
+
     def write_config(self, filename: str):
         config_file = open(filename, 'w')
 
@@ -176,6 +194,9 @@ class ItemsConfigBuilder(ConfigBuilder):
         self.lights_group = openhab2.Group(SWITCH_NAME_DYNAMIC_LIGHTS, SWITCH_NAME_DYNAMIC_LIGHTS, '[%d]',
                                            openhab2.ICON_LIGHT, 'Switch', 'OR(ON, OFF)')
         self.groups[self.lights_group.name] = self.lights_group
+        self.dimmers_group = openhab2.Group(SWITCH_NAME_DYNAMIC_DIMMERS, SWITCH_NAME_DYNAMIC_DIMMERS, '[%d %%]',
+                                            openhab2.ICON_LIGHT, 'Dimmer', 'MAX')
+        self.groups[self.dimmers_group.name] = self.dimmers_group
 
     def write_config(self, filename: str):
         config_file = open(filename, 'w')
@@ -209,7 +230,7 @@ class ItemsConfigBuilder(ConfigBuilder):
         self.add_room_group(row)
         dimmable_lightbulb_item = ohknx2.DimmableLightbuldItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT,
                                                                row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
-        dimmable_lightbulb_item.add_group(self.lights_group.name)
+        dimmable_lightbulb_item.add_group(self.dimmers_group.name)
         dimmable_lightbulb_item.add_tag(homekit.LIGHTING)
         self.items.append(dimmable_lightbulb_item)
 
@@ -253,6 +274,12 @@ class ItemsConfigBuilder(ConfigBuilder):
         target_temperature.add_tag(homekit.TARGET_TEMPERATURE)
         self.items.append(target_temperature)
 
+    def process_occupancysensor(self, row: dict):
+        self.add_room_group(row)
+        switch_item = ohknx2.SwitchItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_MOTIONDETECTOR,
+                                        row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        self.items.append(switch_item)
+
     def add_special_items(self):
         disable_open_rollershutters = openhab2.Item('Switch', SWITCH_NAME_DISABLE_OPEN_BLINDS,
                                                     SWITCH_LABEL_DISABLE_OPEN_BLINDS, '[%s]', '')
@@ -267,13 +294,20 @@ class SitemapConfigBuilder(ConfigBuilder):
 
         rooms_frame = openhab2.Frame('Räume')
         self.add_frame(FRAME_ALL_ROOMS, rooms_frame)
-        dynamic_lights_frame = openhab2.Frame('Eingeschaltete Lampen')
+        dynamic_lights_frame = openhab2.Frame(SWITCH_LABEL_DYNAMIC_LIGHTS)
         dynamic_lights_frame.add_sitemap_element(openhab2.SitemapSwitchElement(SWITCH_NAME_DYNAMIC_LIGHTS,
                                                                                SWITCH_LABEL_DYNAMIC_LIGHTS, '[%s]',
                                                                                openhab2.ICON_LIGHT))
         self.add_frame(FRAME_ACTIVE_LIGHTS, dynamic_lights_frame)
+        dynamic_dimmers_frame = openhab2.Frame(SWITCH_LABEL_DYNAMIC_DIMMERS)
+        dynamic_dimmers_frame.add_sitemap_element(openhab2.SitemapSliderElement(SWITCH_NAME_DYNAMIC_DIMMERS,
+                                                                                SWITCH_LABEL_DYNAMIC_DIMMERS, '[%d %%]',
+                                                                                openhab2.ICON_LIGHT))
+        self.add_frame(FRAME_ACTIVE_DIMMERS, dynamic_dimmers_frame)
         dynamic_rollershutters_frame = openhab2.Frame('Offene Rolladen')
         self.add_frame(FRAME_OPEN_ROLLERSHUTTERS, dynamic_rollershutters_frame)
+        dynamic_open_windows_frame = openhab2.Frame('Offene Fenster')
+        self.add_frame(FRAME_OPEN_WINDOWS, dynamic_open_windows_frame)
         special_functions_frame = openhab2.Frame('Spezialfunktionen')
         self.add_frame(FRAME_SPECIAL_FUNCTIONS, special_functions_frame)
         special_functions_frame.add_sitemap_element(openhab2.SitemapSwitchElement(SWITCH_NAME_DISABLE_OPEN_BLINDS,
@@ -313,9 +347,9 @@ class SitemapConfigBuilder(ConfigBuilder):
         room_sitemap_element.add_element(switch_element)
         slider_element = openhab2.SitemapSliderElement(row[COL_NAME], row[COL_LABEL], '[%d %%]', openhab2.ICON_LIGHT)
         room_sitemap_element.add_element(slider_element)
-        self.get_frame_by_name(FRAME_ACTIVE_LIGHTS)\
-            .add_sitemap_element(openhab2.SitemapSwitchElement(row[COL_NAME], row[COL_LABEL], '[%s]',
-                                                               openhab2.ICON_LIGHT, row[COL_NAME] + '==ON'))
+        self.get_frame_by_name(FRAME_ACTIVE_DIMMERS)\
+            .add_sitemap_element(openhab2.SitemapSliderElement(row[COL_NAME], row[COL_LABEL], '[%s]',
+                                                               openhab2.ICON_LIGHT, row[COL_NAME] + '>0'))
 
     def process_rollershutter(self, row: dict):
         room_sitemap_element = self.get_room_sitemap_element(row[COL_ROOM_NAME], row[COL_ROOM_LABEL])
@@ -324,7 +358,7 @@ class SitemapConfigBuilder(ConfigBuilder):
         slider_element = openhab2.SitemapSliderElement(row[COL_NAME], row[COL_LABEL], '[%d %%]', openhab2.ICON_BLINDS)
         room_sitemap_element.add_element(slider_element)
         self.get_frame_by_name(FRAME_OPEN_ROLLERSHUTTERS)\
-            .add_sitemap_element(openhab2.SitemapSwitchElement(row[COL_NAME], row[COL_LABEL], '[%d %%]',
+            .add_sitemap_element(openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '[%d %%]',
                                                                openhab2.ICON_BLINDS, row[COL_NAME] + '<100'))
 
     def process_jalousie(self, row: dict):
@@ -337,13 +371,16 @@ class SitemapConfigBuilder(ConfigBuilder):
                                                                '[%d %%]', openhab2.ICON_BLINDS)
         room_sitemap_element.add_element(slider_element_lamelle)
         self.get_frame_by_name(FRAME_OPEN_ROLLERSHUTTERS)\
-            .add_sitemap_element(openhab2.SitemapSwitchElement(row[COL_NAME], row[COL_LABEL], '[%d %%]',
-                                                               openhab2.ICON_BLINDS, row[COL_NAME] + '<100'))
+            .add_sitemap_element(openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '[%d %%]',
+                                                             openhab2.ICON_BLINDS, row[COL_NAME] + '<100'))
 
     def process_contact_sensor(self, row: dict):
         room_sitemap_element = self.get_room_sitemap_element(row[COL_ROOM_NAME], row[COL_ROOM_LABEL])
         text_element = openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '', openhab2.ICON_CONTACT)
         room_sitemap_element.add_element(text_element)
+        self.get_frame_by_name(FRAME_OPEN_WINDOWS)\
+            .add_sitemap_element(openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '[%s]',
+                                                             openhab2.ICON_BLINDS, row[COL_NAME] + '==OPEN'))
 
     def process_poweroutlet(self, row: dict):
         room_sitemap_element = self.get_room_sitemap_element(row[COL_ROOM_NAME], row[COL_ROOM_LABEL])
@@ -363,6 +400,11 @@ class SitemapConfigBuilder(ConfigBuilder):
                                                              '[%.1f °C]',openhab2.ICON_TEMPERATURE)
         room_sitemap_element.add_element(target_temperature)
 
+    def process_occupancysensor(self, row: dict):
+        room_sitemap_element = self.get_room_sitemap_element(row[COL_ROOM_NAME], row[COL_ROOM_LABEL])
+        switch_element = openhab2.SitemapSwitchElement(row[COL_NAME], row[COL_LABEL], '', openhab2.ICON_MOTIONDETECTOR)
+        room_sitemap_element.add_element(switch_element)
+
     def write_sitemap_config(self, filename: str, label: str):
         sitemap_config_file = open(filename, 'w')
 
@@ -375,7 +417,11 @@ class SitemapConfigBuilder(ConfigBuilder):
         sitemap_config_file.write('\n')
         sitemap_config_file.write(self.frames[FRAME_ACTIVE_LIGHTS].get_config())
         sitemap_config_file.write('\n')
+        sitemap_config_file.write(self.frames[FRAME_ACTIVE_DIMMERS].get_config())
+        sitemap_config_file.write('\n')
         sitemap_config_file.write(self.frames[FRAME_OPEN_ROLLERSHUTTERS].get_config())
+        sitemap_config_file.write('\n')
+        sitemap_config_file.write(self.frames[FRAME_OPEN_WINDOWS].get_config())
         sitemap_config_file.write('\n')
         sitemap_config_file.write(self.frames[FRAME_SPECIAL_FUNCTIONS].get_config())
         sitemap_config_file.write('\n')

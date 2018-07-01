@@ -130,12 +130,17 @@ class KnxRollershutterChannelType(KnxChannelType):
 
 
 class KnxContactChannelType(KnxChannelType):
-    def __init__(self, name: str, label: str, main_ga: str):
+    def __init__(self, name: str, label: str, main_ga: str, dtp: str=None):
         KnxChannelType.__init__(self, 'Contact', name, label)
         self.main_ga = main_ga
+        self.dtp = dtp
 
     def get_knx_parameter_config(self) -> str:
-        config = 'ga="' + self.main_ga + '"'
+        if self.dtp:
+            knx_dtp = self.dtp
+        else:
+            knx_dtp = '1.019'
+        config = 'ga="' + knx_dtp + ':' + self.main_ga + '"'
         return config
 
 
