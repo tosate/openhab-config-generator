@@ -139,6 +139,16 @@ class KnxContactChannelType(KnxChannelType):
         return config
 
 
+class KnxNumberChannelType(KnxChannelType):
+    def __init__(self, name: str, label: str, main_ga: str):
+        KnxChannelType.__init__(self, 'Number', name, label)
+        self.main_ga = main_ga
+
+    def get_knx_parameter_config(self) -> str:
+        config = 'ga="9.001:<' + self.main_ga + '"'
+        return config
+
+
 class KnxItem(openhab2.Item):
     def __init__(self, item_type: str, name: str, label: str, state_presentation: str, icon: str, actuator_name: str,
                  channel_name: str):
@@ -173,3 +183,8 @@ class ContactSensorItem(KnxItem):
 class RollershutterItem(KnxItem):
     def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
         KnxItem.__init__(self, 'Rollershutter', name, label, '[%d %%]', icon, actuator_name, channel_name)
+
+
+class NumberItem(KnxItem):
+    def __init__(self, name: str, label: str, state_presentation: str, icon: str, actuator_name: str, channel_name: str):
+        KnxItem.__init__(self, 'Number', name, label, state_presentation, icon, actuator_name, channel_name)

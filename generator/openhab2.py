@@ -24,6 +24,7 @@ ICON_SUN = 'sun'
 ICON_SUESET = 'sunset'
 ICON_SUN_CLOUDS = 'sun_clouds'
 ICON_MOON = 'moon'
+ICON_TEMPERATURE = 'temperature'
 
 
 class Thing:

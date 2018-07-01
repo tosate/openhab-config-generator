@@ -22,6 +22,14 @@ COL_FLOOR = 'floor'
 COL_ROOM_NAME = 'room_name'
 COL_ROOM_LABEL = 'room_label'
 
+TYPE_LIGHTBULB = 'Lightbulb'
+TYPE_DIMMER = 'Dimmer'
+TYPE_CONTACTSENSOR = 'ContactSensor'
+TYPE_ROLLERSHUTTER = 'Rollershutter'
+TYPE_JALOUSIE = 'Jalousie'
+TYPE_POWEROUTLET = 'PowerOutlet'
+TYPE_THERMOSTAT = 'Thermostat'
+
 FRAME_ALL_ROOMS = 'ALL_ROOMS'
 FRAME_ACTIVE_LIGHTS = 'ACTIVE_LIGHTS'
 FRAME_OPEN_ROLLERSHUTTERS = 'OPEN_ROLLERSHUTTERS'
@@ -33,26 +41,52 @@ SWITCH_NAME_DISABLE_OPEN_BLINDS = 'Disable_Open_Rollershutters'
 SWITCH_LABEL_DISABLE_OPEN_BLINDS = 'Rolläden nicht öffnen'
 
 
-class KnxThingsConfigBuilder:
+class ConfigBuilder:
+    def process_csv_input(self):
+        for row in self.csv_reader:
+            entry_type = row[COL_TYPE]
+            if entry_type == TYPE_LIGHTBULB:
+                self.process_lightbulb(row)
+            elif entry_type == TYPE_DIMMER:
+                self.process_dimmer(row)
+            elif entry_type == TYPE_CONTACTSENSOR:
+                self.process_contact_sensor(row)
+            elif entry_type == TYPE_ROLLERSHUTTER:
+                self.process_rollershutter(row)
+            elif entry_type == TYPE_JALOUSIE:
+                self.process_jalousie(row)
+            elif entry_type == TYPE_POWEROUTLET:
+                self.process_poweroutlet(row)
+            elif entry_type == TYPE_THERMOSTAT:
+                self.process_thermostat(row)
+
+    def process_lightbulb(self, row: dict):
+        pass
+
+    def process_dimmer(self, row: dict):
+        pass
+
+    def process_contact_sensor(self, row: dict):
+        pass
+
+    def process_rollershutter(self, row: dict):
+        pass
+
+    def process_jalousie(self, row: dict):
+        pass
+
+    def process_poweroutlet(self, row: dict):
+        pass
+
+    def process_thermostat(self, row: dict):
+        pass
+
+
+class KnxThingsConfigBuilder(ConfigBuilder):
     def __init__(self, csv_reader: csv.DictReader):
         self.csv_reader = csv_reader
         self.bridge = ohknx2.KnxBridge('127.0.0.1', 3671, '192.168.178.31')
         self.device_things = {}
-
-    def process_csv_input(self):
-        for row in self.csv_reader:
-            if row[COL_TYPE] == 'Lightbulb':
-                self.process_lightbulb(row)
-            elif row[COL_TYPE] == 'Dimmer':
-                self.process_dimmer(row)
-            elif row[COL_TYPE] == 'ContactSensor':
-                self.process_contact_sensor(row)
-            elif row[COL_TYPE] == 'Rollershutter':
-                self.process_rollershutter(row)
-            elif row[COL_TYPE] == 'Jalousie':
-                self.process_jalousie(row)
-            elif row[COL_TYPE] == 'PowerOutlet':
-                self.process_poweroutlet(row)
 
     def get_knx_device_thing(self, actuator_name: str, actuator_label: str, actuator_address: str) -> ohknx2.KnxThing:
         if actuator_name in self.device_things:
@@ -114,6 +148,13 @@ class KnxThingsConfigBuilder:
                                                           row[COL_GA2])
         device_thing.add_channel_type(switch_channel_type)
 
+    def process_thermostat(self, row: dict):
+        device_thing = self.get_knx_device_thing(row[COL_ACTUATOR_NAME], row[COL_ACTUATOR_LABEL],
+                                                 row[COL_ACTUATOR_ADDRESS])
+        channel_type_label = 'Channel ' + row[COL_IN_OUT]
+        number_channel_type = ohknx2.KnxNumberChannelType(row[COL_CHANNEL_NAME], channel_type_label, row[COL_GA1])
+        device_thing.add_channel_type(number_channel_type)
+
     def write_config(self, filename: str):
         config_file = open(filename, 'w')
 
@@ -122,7 +163,7 @@ class KnxThingsConfigBuilder:
         config_file.close()
 
 
-class ItemsConfigBuilder:
+class ItemsConfigBuilder(ConfigBuilder):
     def __init__(self, csv_reader: csv.DictReader):
         self.csv_reader = csv_reader
         self.items = []
@@ -130,21 +171,6 @@ class ItemsConfigBuilder:
         self.lights_group = openhab2.Group(SWITCH_NAME_DYNAMIC_LIGHTS, SWITCH_NAME_DYNAMIC_LIGHTS, '[%d]',
                                            openhab2.ICON_LIGHT, 'Switch', 'OR(ON, OFF)')
         self.groups[self.lights_group.name] = self.lights_group
-
-    def process_csv_input(self):
-        for row in self.csv_reader:
-            if row[COL_TYPE] == 'Lightbulb':
-                self.process_lightbulb(row)
-            elif row[COL_TYPE] == 'Dimmer':
-                self.process_dimmer(row)
-            elif row[COL_TYPE] == 'ContactSensor':
-                self.process_contact_sensor(row)
-            elif row[COL_TYPE] == 'Rollershutter':
-                self.process_rollershutter(row)
-            elif row[COL_TYPE] == 'Jalousie':
-                self.process_jalousie(row)
-            elif row[COL_TYPE] == 'PowerOutlet':
-                self.process_poweroutlet(row)
 
     def write_config(self, filename: str):
         config_file = open(filename, 'w')
@@ -207,13 +233,19 @@ class ItemsConfigBuilder:
         power_outlet_item.add_group(self.lights_group.name)
         self.items.append(power_outlet_item)
 
+    def process_thermostat(self, row: dict):
+        self.add_room_group(row)
+        thermostat_item = ohknx2.NumberItem(row[COL_NAME], row[COL_LABEL], '[%.1f °C]', openhab2.ICON_TEMPERATURE,
+                                            row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        self.items.append(thermostat_item)
+
     def add_special_items(self):
         disable_open_rollershutters = openhab2.Item('Switch', SWITCH_NAME_DISABLE_OPEN_BLINDS,
                                                     SWITCH_LABEL_DISABLE_OPEN_BLINDS, '[%s]', '')
         self.items.append(disable_open_rollershutters)
 
 
-class SitemapConfigBuilder:
+class SitemapConfigBuilder(ConfigBuilder):
     def __init__(self, csv_reader: csv.DictReader):
         self.csv_reader = csv_reader
         self.frames = {}
@@ -239,21 +271,6 @@ class SitemapConfigBuilder:
 
     def get_frame_by_name(self, frame_name: str) -> openhab2.Frame:
         return self.frames[frame_name]
-
-    def process_csv_input(self):
-        for row in self.csv_reader:
-            if row[COL_TYPE] == 'Lightbulb':
-                self.process_lightbulb(row)
-            elif row[COL_TYPE] == 'Dimmer':
-                self.process_dimmer(row)
-            elif row[COL_TYPE] == 'ContactSensor':
-                self.process_contact_sensor(row)
-            elif row[COL_TYPE] == 'Rollershutter':
-                self.process_rollershutter(row)
-            elif row[COL_TYPE] == 'Jalousie':
-                self.process_jalousie(row)
-            elif row[COL_TYPE] == 'PowerOutlet':
-                self.process_poweroutlet(row)
 
     def get_room_sitemap_element(self, room_name: str, room_label: str) -> openhab2.SitemapTextElement:
         if room_name in self.rooms:
@@ -322,6 +339,12 @@ class SitemapConfigBuilder:
         self.get_frame_by_name(FRAME_ACTIVE_LIGHTS)\
             .add_sitemap_element(openhab2.SitemapSwitchElement(row[COL_NAME], row[COL_LABEL], '[%s]',
                                                                openhab2.ICON_POWER_OUTLET, row[COL_NAME] + '==ON'))
+
+    def process_thermostat(self, row: dict):
+        room_sitemap_element = self.get_room_sitemap_element(row[COL_ROOM_NAME], row[COL_ROOM_LABEL])
+        text_element = openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '[%.1f °C]',
+                                                   openhab2.ICON_TEMPERATURE)
+        room_sitemap_element.add_element(text_element)
 
     def write_sitemap_config(self, filename: str, label: str):
         sitemap_config_file = open(filename, 'w')
