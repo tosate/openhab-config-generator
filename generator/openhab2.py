@@ -231,3 +231,9 @@ class SitemapSliderElement(SitemapElement):
     def __init__(self, item_name: str, label: str, state_presentation: str, icon: str, visibility: str=None):
         SitemapElement.__init__(self, label, state_presentation, icon, item_name, visibility)
         self.type = 'Slider'
+
+
+class SitemapSetPointElement(SitemapTextElement):
+    def __init__(self, item_name: str, label: str, state_presentation: str, icon: str, visibility: str=None):
+        SitemapElement.__init__(self, label, state_presentation, icon, item_name, visibility)
+        self.type = 'Setpoint'

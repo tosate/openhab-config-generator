@@ -2,6 +2,7 @@ import csv
 
 import openhab2
 import ohknx2
+import homekit
 
 COL_ACTUATOR_NAME = 'Actuator_name'
 COL_ACTUATOR_LABEL = 'Actuator_label'
@@ -152,8 +153,12 @@ class KnxThingsConfigBuilder(ConfigBuilder):
         device_thing = self.get_knx_device_thing(row[COL_ACTUATOR_NAME], row[COL_ACTUATOR_LABEL],
                                                  row[COL_ACTUATOR_ADDRESS])
         channel_type_label = 'Channel ' + row[COL_IN_OUT]
-        number_channel_type = ohknx2.KnxNumberChannelType(row[COL_CHANNEL_NAME], channel_type_label, row[COL_GA1])
-        device_thing.add_channel_type(number_channel_type)
+        current_temperature = ohknx2.KnxNumberChannelType(row[COL_CHANNEL_NAME] + '_CURR',
+                                                          channel_type_label + ' CURR', row[COL_GA1])
+        device_thing.add_channel_type(current_temperature)
+        target_temperature = ohknx2.KnxNumberChannelType(row[COL_CHANNEL_NAME] + '_TARGET',
+                                                         channel_type_label + ' TARGET', row[COL_GA2])
+        device_thing.add_channel_type(target_temperature)
 
     def write_config(self, filename: str):
         config_file = open(filename, 'w')
@@ -197,6 +202,7 @@ class ItemsConfigBuilder(ConfigBuilder):
         lightbulb_item = ohknx2.SwitchItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT, row[COL_ACTUATOR_NAME],
                                            row[COL_CHANNEL_NAME])
         lightbulb_item.add_group(self.lights_group.name)
+        lightbulb_item.add_tag(homekit.LIGHTING)
         self.items.append(lightbulb_item)
 
     def process_dimmer(self, row: dict):
@@ -204,6 +210,7 @@ class ItemsConfigBuilder(ConfigBuilder):
         dimmable_lightbulb_item = ohknx2.DimmableLightbuldItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT,
                                                                row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
         dimmable_lightbulb_item.add_group(self.lights_group.name)
+        dimmable_lightbulb_item.add_tag(homekit.LIGHTING)
         self.items.append(dimmable_lightbulb_item)
 
     def process_contact_sensor(self, row: dict):
@@ -235,9 +242,16 @@ class ItemsConfigBuilder(ConfigBuilder):
 
     def process_thermostat(self, row: dict):
         self.add_room_group(row)
-        thermostat_item = ohknx2.NumberItem(row[COL_NAME], row[COL_LABEL], '[%.1f °C]', openhab2.ICON_TEMPERATURE,
-                                            row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
-        self.items.append(thermostat_item)
+        curr_temperature = ohknx2.NumberItem(row[COL_NAME] + '_CURR', row[COL_LABEL] + ' IST', '[%.1f °C]',
+                                             openhab2.ICON_TEMPERATURE, row[COL_ACTUATOR_NAME],
+                                             row[COL_CHANNEL_NAME] + '_CURR')
+        curr_temperature.add_tag(homekit.CURRENT_TEMPERATURE)
+        self.items.append(curr_temperature)
+        target_temperature = ohknx2.NumberItem(row[COL_NAME] + '_TARGET', row[COL_LABEL] + ' SOLL', '[%.1f °C]',
+                                               openhab2.ICON_TEMPERATURE, row[COL_ACTUATOR_NAME],
+                                               row[COL_CHANNEL_NAME] + '_TARGET')
+        target_temperature.add_tag(homekit.TARGET_TEMPERATURE)
+        self.items.append(target_temperature)
 
     def add_special_items(self):
         disable_open_rollershutters = openhab2.Item('Switch', SWITCH_NAME_DISABLE_OPEN_BLINDS,
@@ -322,7 +336,7 @@ class SitemapConfigBuilder(ConfigBuilder):
         slider_element_lamelle = openhab2.SitemapSliderElement(row[COL_NAME] + '_Lamelle', row[COL_LABEL] + ' Lamelle',
                                                                '[%d %%]', openhab2.ICON_BLINDS)
         room_sitemap_element.add_element(slider_element_lamelle)
-        self.get_frame_by_name(FRAME_OPEN_ROLLERSHUTTERS) \
+        self.get_frame_by_name(FRAME_OPEN_ROLLERSHUTTERS)\
             .add_sitemap_element(openhab2.SitemapSwitchElement(row[COL_NAME], row[COL_LABEL], '[%d %%]',
                                                                openhab2.ICON_BLINDS, row[COL_NAME] + '<100'))
 
@@ -342,9 +356,12 @@ class SitemapConfigBuilder(ConfigBuilder):
 
     def process_thermostat(self, row: dict):
         room_sitemap_element = self.get_room_sitemap_element(row[COL_ROOM_NAME], row[COL_ROOM_LABEL])
-        text_element = openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '[%.1f °C]',
-                                                   openhab2.ICON_TEMPERATURE)
-        room_sitemap_element.add_element(text_element)
+        curr_temperature = openhab2.SitemapTextElement(row[COL_NAME] + '_CURR', row[COL_LABEL] + ' IST', '[%.1f °C]',
+                                                       openhab2.ICON_TEMPERATURE)
+        room_sitemap_element.add_element(curr_temperature)
+        target_temperature = openhab2.SitemapSetPointElement(row[COL_NAME] + '_TARGET', row[COL_LABEL] + ' SOLL',
+                                                             '[%.1f °C]',openhab2.ICON_TEMPERATURE)
+        room_sitemap_element.add_element(target_temperature)
 
     def write_sitemap_config(self, filename: str, label: str):
         sitemap_config_file = open(filename, 'w')
