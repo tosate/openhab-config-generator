@@ -100,17 +100,17 @@ class KnxSwitchChannelType(KnxChannelType):
 
 class KnxDimmerChannelType(KnxChannelType):
     def __init__(self, name: str, label: str, main_ga: str, listening_ga: str, position_ga: str,
-                 listening_position_ga: str, increase_decrease_ga: str):
+                 status_position_ga: str, increase_decrease: str):
         KnxChannelType.__init__(self, 'Dimmer', name, label)
         self.main_ga = main_ga
         self.listening_ga = listening_ga
         self.position_ga = position_ga
-        self.listening_position_ga = listening_position_ga
-        self.increase_decrease_ga = increase_decrease_ga
+        self.status_position_ga = status_position_ga
+        self.increase_decrease = increase_decrease
 
     def get_knx_parameter_config(self) -> str:
-        config = 'switch="' + self.main_ga + '+<' + self.listening_ga + '", position="' + self.position_ga + '+<'\
-                 + self.listening_position_ga + '", increaseDecrease="' + self.increase_decrease_ga + '"'
+        config = 'switch="' + self.main_ga + '+<' + self.listening_ga + '", position="' + self.position_ga \
+                 + '+<' + self.status_position_ga + '", increaseDecrease="' + self.increase_decrease + '"'
         return config
 
 

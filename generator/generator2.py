@@ -121,7 +121,7 @@ class KnxThingsConfigBuilder(ConfigBuilder):
                                                  row[COL_ACTUATOR_ADDRESS])
         channel_type_label = 'Channel ' + row[COL_IN_OUT]
         dimmer_channel_type = ohknx2.KnxDimmerChannelType(row[COL_CHANNEL_NAME], channel_type_label, row[COL_GA1],
-                                                          row[COL_GA2], row[COL_GA3], row[COL_GA4], row[COL_GA5])
+                                                          row[COL_GA2], row[COL_GA4], row[COL_GA5], row[COL_GA3])
         device_thing.add_channel_type(dimmer_channel_type)
 
     def process_contact_sensor(self, row: dict):
@@ -263,15 +263,21 @@ class ItemsConfigBuilder(ConfigBuilder):
 
     def process_thermostat(self, row: dict):
         self.add_room_group(row)
+        group_name = row[COL_NAME]
+        thermostat_group = openhab2.Group(group_name, row[COL_LABEL], openhab2.ICON_TEMPERATURE, '')
+        thermostat_group.add_tag(homekit.THERMOSTAT)
+        self.groups[group_name] = thermostat_group
         curr_temperature = ohknx2.NumberItem(row[COL_NAME] + '_CURR', row[COL_LABEL] + ' IST', '[%.1f °C]',
                                              openhab2.ICON_TEMPERATURE, row[COL_ACTUATOR_NAME],
                                              row[COL_CHANNEL_NAME] + '_CURR')
         curr_temperature.add_tag(homekit.CURRENT_TEMPERATURE)
+        curr_temperature.add_group(group_name)
         self.items.append(curr_temperature)
         target_temperature = ohknx2.NumberItem(row[COL_NAME] + '_TARGET', row[COL_LABEL] + ' SOLL', '[%.1f °C]',
                                                openhab2.ICON_TEMPERATURE, row[COL_ACTUATOR_NAME],
                                                row[COL_CHANNEL_NAME] + '_TARGET')
         target_temperature.add_tag(homekit.TARGET_TEMPERATURE)
+        target_temperature.add_group(group_name)
         self.items.append(target_temperature)
 
     def process_occupancysensor(self, row: dict):
