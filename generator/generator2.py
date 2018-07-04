@@ -231,7 +231,7 @@ class ItemsConfigBuilder(ConfigBuilder):
         dimmable_lightbulb_item = ohknx2.DimmableLightbuldItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT,
                                                                row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
         dimmable_lightbulb_item.add_group(self.dimmers_group.name)
-        dimmable_lightbulb_item.add_tag(homekit.LIGHTING)
+        dimmable_lightbulb_item.add_tag(homekit.DIMMABLE_LGHTING)
         self.items.append(dimmable_lightbulb_item)
 
     def process_contact_sensor(self, row: dict):
@@ -244,6 +244,7 @@ class ItemsConfigBuilder(ConfigBuilder):
         self.add_room_group(row)
         rollershutter_item = ohknx2.RollershutterItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_CONTACT,
                                                       row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        rollershutter_item.add_tag(homekit.ROLLERSHUTTER)
         self.items.append(rollershutter_item)
 
     def process_jalousie(self, row: dict):
@@ -252,6 +253,7 @@ class ItemsConfigBuilder(ConfigBuilder):
         lamelle_item = ohknx2.RollershutterItem(row[COL_NAME] + '_Lamelle', row[COL_LABEL] + ' Lamelle',
                                                 openhab2.ICON_CONTACT, row[COL_ACTUATOR_NAME],
                                                 row[COL_CHANNEL_NAME] + '_L')
+        lamelle_item.add_tag(homekit.TILTING_ROLLERSHUTTER)
         self.items.append(lamelle_item)
 
     def process_poweroutlet(self, row: dict):
