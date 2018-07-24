@@ -1,0 +1,5 @@
+NAME,LABEL,FLOOR,ROOM_NAME,ROOM_LABEL,Type,Actuator_name,Channel_name
+GF_Office_Rollershutter,Büro EG,GF,GF_Office,Büro EG,Rollershutter,TXM620D_1,Channel_12
+GF_Office_Lightbulb,Büro EG,GF,GF_Office,Büro EG,Lightbulb,TXM620D_3,Channel_6
+GF_Office_ContactSensor,Büro EG,GF,GF_Office,Büro EG,ContactSensor,TXA306_1,Channel_1
+GF_Office_Thermostat,Büro EG,GF,GF_Office,Büro EG,Thermostat,TXM616D,Channel_6

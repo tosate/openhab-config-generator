@@ -46,6 +46,8 @@ SWITCH_LABEL_DYNAMIC_DIMMERS = 'Eingeschaltete Dimmer'
 SWITCH_NAME_DISABLE_OPEN_BLINDS = 'Disable_Open_Rollershutters'
 SWITCH_LABEL_DISABLE_OPEN_BLINDS = 'Rolläden nicht öffnen'
 
+HK_NAME_PERFIX = 'HK_'
+
 
 class ConfigBuilder:
     def process_csv_input(self):
@@ -197,6 +199,7 @@ class ItemsConfigBuilder(ConfigBuilder):
         self.dimmers_group = openhab2.Group(SWITCH_NAME_DYNAMIC_DIMMERS, SWITCH_NAME_DYNAMIC_DIMMERS, '[%d %%]',
                                             openhab2.ICON_LIGHT, 'Dimmer', 'MAX')
         self.groups[self.dimmers_group.name] = self.dimmers_group
+        self.hk_items = []
 
     def write_config(self, filename: str):
         config_file = open(filename, 'w')
@@ -213,6 +216,14 @@ class ItemsConfigBuilder(ConfigBuilder):
 
         config_file.close()
 
+    def write_hk_items_config(self, filename: str):
+        config_file = open(filename, 'w')
+
+        for hk_item in self.hk_items:
+            config_file.write(hk_item.get_config() + '\n')
+
+        config_file.close()
+
     def add_room_group(self, row: dict):
         room_name = row[COL_ROOM_NAME]
         if room_name not in self.groups:
@@ -223,16 +234,28 @@ class ItemsConfigBuilder(ConfigBuilder):
         lightbulb_item = ohknx2.SwitchItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT, row[COL_ACTUATOR_NAME],
                                            row[COL_CHANNEL_NAME])
         lightbulb_item.add_group(self.lights_group.name)
-        lightbulb_item.add_tag(homekit.LIGHTING)
         self.items.append(lightbulb_item)
+
+        # homekit
+        hk_lightbulb_item = ohknx2.SwitchItem(HK_NAME_PERFIX + row[COL_NAME], row[COL_LABEL], '',
+                                              row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        hk_lightbulb_item.state_presentation = ''
+        hk_lightbulb_item.add_tag(homekit.LIGHTING)
+        self.hk_items.append(hk_lightbulb_item)
 
     def process_dimmer(self, row: dict):
         self.add_room_group(row)
-        dimmable_lightbulb_item = ohknx2.DimmableLightbuldItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT,
+        dimmable_light_item = ohknx2.DimmableLightbuldItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT,
                                                                row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
-        dimmable_lightbulb_item.add_group(self.dimmers_group.name)
-        dimmable_lightbulb_item.add_tag(homekit.DIMMABLE_LGHTING)
-        self.items.append(dimmable_lightbulb_item)
+        dimmable_light_item.add_group(self.dimmers_group.name)
+        self.items.append(dimmable_light_item)
+
+        # homekit
+        hk_dimmable_light_item = ohknx2.DimmableLightbuldItem(HK_NAME_PERFIX + row[COL_NAME], row[COL_LABEL], '',
+                                                              row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        hk_dimmable_light_item.state_presentation = ''
+        hk_dimmable_light_item.add_tag(homekit.DIMMABLE_LGHTING)
+        self.hk_items.append(hk_dimmable_light_item)
 
     def process_contact_sensor(self, row: dict):
         self.add_room_group(row)
@@ -244,8 +267,14 @@ class ItemsConfigBuilder(ConfigBuilder):
         self.add_room_group(row)
         rollershutter_item = ohknx2.RollershutterItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_CONTACT,
                                                       row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
-        rollershutter_item.add_tag(homekit.ROLLERSHUTTER)
         self.items.append(rollershutter_item)
+
+        # homekit
+        # hk_rollershutter_item = ohknx2.RollershutterItem(HK_NAME_PERFIX + row[COL_NAME], row[COL_LABEL], '',
+        #                                                  row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        # hk_rollershutter_item.state_presentation = ''
+        # hk_rollershutter_item.add_tag(homekit.ROLLERSHUTTER)
+        # self.hk_items.append(hk_rollershutter_item)
 
     def process_jalousie(self, row: dict):
         self.add_room_group(row)
@@ -253,7 +282,6 @@ class ItemsConfigBuilder(ConfigBuilder):
         lamelle_item = ohknx2.RollershutterItem(row[COL_NAME] + '_Lamelle', row[COL_LABEL] + ' Lamelle',
                                                 openhab2.ICON_CONTACT, row[COL_ACTUATOR_NAME],
                                                 row[COL_CHANNEL_NAME] + '_L')
-        lamelle_item.add_tag(homekit.TILTING_ROLLERSHUTTER)
         self.items.append(lamelle_item)
 
     def process_poweroutlet(self, row: dict):
@@ -266,21 +294,29 @@ class ItemsConfigBuilder(ConfigBuilder):
     def process_thermostat(self, row: dict):
         self.add_room_group(row)
         group_name = row[COL_NAME]
-        thermostat_group = openhab2.Group(group_name, row[COL_LABEL], openhab2.ICON_TEMPERATURE, '')
-        thermostat_group.add_tag(homekit.THERMOSTAT)
-        self.groups[group_name] = thermostat_group
         curr_temperature = ohknx2.NumberItem(row[COL_NAME] + '_CURR', row[COL_LABEL] + ' IST', '[%.1f °C]',
                                              openhab2.ICON_TEMPERATURE, row[COL_ACTUATOR_NAME],
                                              row[COL_CHANNEL_NAME] + '_CURR')
-        curr_temperature.add_tag(homekit.CURRENT_TEMPERATURE)
-        curr_temperature.add_group(group_name)
         self.items.append(curr_temperature)
         target_temperature = ohknx2.NumberItem(row[COL_NAME] + '_TARGET', row[COL_LABEL] + ' SOLL', '[%.1f °C]',
                                                openhab2.ICON_TEMPERATURE, row[COL_ACTUATOR_NAME],
                                                row[COL_CHANNEL_NAME] + '_TARGET')
-        target_temperature.add_tag(homekit.TARGET_TEMPERATURE)
-        target_temperature.add_group(group_name)
         self.items.append(target_temperature)
+
+        #homekit
+        hk_thermostat_group = openhab2.Group(HK_NAME_PERFIX + group_name, row[COL_LABEL], '', '')
+        hk_thermostat_group.add_tag(homekit.THERMOSTAT)
+        self.hk_items.append(hk_thermostat_group)
+        hk_curr_temperature = ohknx2.NumberItem(HK_NAME_PERFIX + row[COL_NAME] + '_CURR', row[COL_LABEL] + ' IST', '',
+                                                '', row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME] + '_CURR')
+        hk_curr_temperature.add_group(HK_NAME_PERFIX + group_name)
+        hk_curr_temperature.add_tag(homekit.CURRENT_TEMPERATURE)
+        self.hk_items.append(hk_curr_temperature)
+        hk_target_temperature = ohknx2.NumberItem(HK_NAME_PERFIX + row[COL_NAME] + '_TARGET', row[COL_LABEL] + ' SOLL',
+                                                  '', '', row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME] + '_TARGET')
+        hk_target_temperature.add_tag(homekit.TARGET_TEMPERATURE)
+        hk_target_temperature.add_group(HK_NAME_PERFIX + group_name)
+        self.hk_items.append(hk_target_temperature)
 
     def process_occupancysensor(self, row: dict):
         self.add_room_group(row)
@@ -388,7 +424,7 @@ class SitemapConfigBuilder(ConfigBuilder):
         room_sitemap_element.add_element(text_element)
         self.get_frame_by_name(FRAME_OPEN_WINDOWS)\
             .add_sitemap_element(openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '[%s]',
-                                                             openhab2.ICON_BLINDS, row[COL_NAME] + '==OPEN'))
+                                                             openhab2.ICON_CONTACT, row[COL_NAME] + '==OPEN'))
 
     def process_poweroutlet(self, row: dict):
         room_sitemap_element = self.get_room_sitemap_element(row[COL_ROOM_NAME], row[COL_ROOM_LABEL])
@@ -483,6 +519,7 @@ items_config_builder = ItemsConfigBuilder(csv_items_reader)
 items_config_builder.process_csv_input()
 items_config_builder.add_special_items()
 items_config_builder.write_config('knx2.items')
+items_config_builder.write_hk_items_config('homekit.items')
 
 csv_items_file.seek(0)
 

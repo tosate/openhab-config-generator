@@ -116,12 +116,12 @@ class Item:
             config = config[:len(config) - 2] + ') '
 
         if len(self.tags) > 0:
-            config = config + '['
+            config = config + '[ '
 
             for tag in self.tags:
                 config = config + '"' + tag + '", '
 
-            config = config[:len(config) - 2] + '] '
+            config = config[:len(config) - 2] + ' ] '
 
         config = config + self.get_binding_config()
         return config
@@ -148,6 +148,15 @@ class Group(Item):
         if self.icon:
             group_str = group_str + '<' + self.icon + '> '
         group_str = self.get_group_list(group_str)
+
+        if len(self.tags) > 0:
+            group_str = group_str + '[ '
+
+            for tag in self.tags:
+                group_str = group_str + '"' + tag + '", '
+
+                group_str = group_str[:len(group_str) - 2] + ' ] '
+
         return group_str
 
 
