@@ -43,8 +43,10 @@ SWITCH_NAME_DYNAMIC_LIGHTS = 'Lights'
 SWITCH_LABEL_DYNAMIC_LIGHTS = 'Eingeschaltete Lampen'
 SWITCH_NAME_DYNAMIC_DIMMERS = 'Dimmers'
 SWITCH_LABEL_DYNAMIC_DIMMERS = 'Eingeschaltete Dimmer'
-SWITCH_NAME_DISABLE_OPEN_BLINDS = 'Disable_Open_Rollershutters'
-SWITCH_LABEL_DISABLE_OPEN_BLINDS = 'Rolläden nicht öffnen'
+SWITCH_NAME_DISABLE_OPEN_BEDROOM_BLINDS = 'Disable_Open_Bedroom_Rollershutters'
+SWITCH_NAME_DISABLE_OPEN_OFFICE_FF_BLINDS = 'Disable_Open_Office_FF_Rollershutters'
+SWITCH_LABEL_DISABLE_OPEN_BEDROOM_BLINDS = 'Schlafzimmerrollläden nicht öffnen'
+SWITCH_LABEL_DISABLE_OPEN_OFFICE_FF_BLINDS = 'Rollläden Büro OG nicht öffnen'
 
 HK_NAME_PERFIX = 'HK_'
 
@@ -325,9 +327,12 @@ class ItemsConfigBuilder(ConfigBuilder):
         self.items.append(switch_item)
 
     def add_special_items(self):
-        disable_open_rollershutters = openhab2.Item('Switch', SWITCH_NAME_DISABLE_OPEN_BLINDS,
-                                                    SWITCH_LABEL_DISABLE_OPEN_BLINDS, '[%s]', '')
-        self.items.append(disable_open_rollershutters)
+        disable_open_bedroom_rollershutters = openhab2.Item('Switch', SWITCH_NAME_DISABLE_OPEN_BEDROOM_BLINDS,
+                                                    SWITCH_LABEL_DISABLE_OPEN_BEDROOM_BLINDS, '[%s]', '')
+        self.items.append(disable_open_bedroom_rollershutters)
+        disable_open_office_ff_rollershutters = openhab2.Item('Switch', SWITCH_NAME_DISABLE_OPEN_OFFICE_FF_BLINDS,
+                                                              SWITCH_LABEL_DISABLE_OPEN_OFFICE_FF_BLINDS, '[%s]', '')
+        self.items.append(disable_open_office_ff_rollershutters)
 
 
 class SitemapConfigBuilder(ConfigBuilder):
@@ -354,9 +359,10 @@ class SitemapConfigBuilder(ConfigBuilder):
         self.add_frame(FRAME_OPEN_WINDOWS, dynamic_open_windows_frame)
         special_functions_frame = openhab2.Frame('Spezialfunktionen')
         self.add_frame(FRAME_SPECIAL_FUNCTIONS, special_functions_frame)
-        special_functions_frame.add_sitemap_element(openhab2.SitemapSwitchElement(SWITCH_NAME_DISABLE_OPEN_BLINDS,
-                                                                                  SWITCH_LABEL_DISABLE_OPEN_BLINDS,
-                                                                                  '[%s]', ''))
+        special_functions_frame.add_sitemap_element(openhab2.SitemapSwitchElement(
+            SWITCH_NAME_DISABLE_OPEN_BEDROOM_BLINDS, SWITCH_LABEL_DISABLE_OPEN_BEDROOM_BLINDS, '[%s]', ''))
+        special_functions_frame.add_sitemap_element(openhab2.SitemapSwitchElement(
+            SWITCH_NAME_DISABLE_OPEN_OFFICE_FF_BLINDS, SWITCH_LABEL_DISABLE_OPEN_OFFICE_FF_BLINDS, '[%s]', ''))
 
     def add_frame(self, frame_name: str, frame: openhab2.Frame):
         self.frames[frame_name] = frame
