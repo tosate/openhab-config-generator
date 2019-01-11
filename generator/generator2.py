@@ -31,6 +31,7 @@ TYPE_JALOUSIE = 'Jalousie'
 TYPE_POWEROUTLET = 'PowerOutlet'
 TYPE_THERMOSTAT = 'Thermostat'
 TYPE_OCCUPANCYSENSOR = 'OccupancySensor'
+TYPE_SMOKESENSOR = 'SmokeSensor'
 
 FRAME_ALL_ROOMS = 'ALL_ROOMS'
 FRAME_ACTIVE_LIGHTS = 'ACTIVE_LIGHTS'
@@ -71,6 +72,8 @@ class ConfigBuilder:
                 self.process_thermostat(row)
             elif entry_type == TYPE_OCCUPANCYSENSOR:
                 self.process_occupancysensor(row)
+            elif entry_type == TYPE_SMOKESENSOR:
+                self.process_smokesensor(row)
 
     def process_lightbulb(self, row: dict):
         pass
@@ -94,6 +97,9 @@ class ConfigBuilder:
         pass
 
     def process_occupancysensor(self, row: dict):
+        pass
+
+    def process_smokesensor(self, row: dict):
         pass
 
 
@@ -180,6 +186,13 @@ class KnxThingsConfigBuilder(ConfigBuilder):
         channel_type_label = 'Channel ' + row[COL_IN_OUT]
         switch_channel_type = ohknx2.KnxSwitchChannelType(row[COL_CHANNEL_NAME], channel_type_label, row[COL_GA1],
                                                             row[COL_GA1])
+        device_thing.add_channel_type(switch_channel_type)
+
+    def process_smokesensor(self, row: dict):
+        device_thing = self.get_knx_device_thing(row[COL_ACTUATOR_NAME], row[COL_ACTUATOR_LABEL],
+                                                 row[COL_ACTUATOR_ADDRESS])
+        channel_type_label = 'Channel ' + row[COL_IN_OUT]
+        switch_channel_type = ohknx2.KnxSmokeSensorChannelType(row[COL_CHANNEL_NAME], channel_type_label, row[COL_GA1])
         device_thing.add_channel_type(switch_channel_type)
 
     def write_config(self, filename: str):
@@ -326,6 +339,12 @@ class ItemsConfigBuilder(ConfigBuilder):
                                         row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
         self.items.append(switch_item)
 
+    def process_smokesensor(self, row: dict):
+        self.add_room_group(row)
+        switch_item = ohknx2.SmokeSensorItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_SMOKE,
+                                        row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        self.items.append(switch_item)
+
     def add_special_items(self):
         disable_open_bedroom_rollershutters = openhab2.Item('Switch', SWITCH_NAME_DISABLE_OPEN_BEDROOM_BLINDS,
                                                     SWITCH_LABEL_DISABLE_OPEN_BEDROOM_BLINDS, '[%s]', '')
@@ -455,6 +474,10 @@ class SitemapConfigBuilder(ConfigBuilder):
         switch_element = openhab2.SitemapSwitchElement(row[COL_NAME], row[COL_LABEL], '', openhab2.ICON_MOTIONDETECTOR)
         room_sitemap_element.add_element(switch_element)
 
+    def process_smokesensor(self, row: dict):
+        text_element = openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '', openhab2.ICON_SMOKE)
+        # self.frames[FRAME_ALL_ROOMS].add_sitemap_element(text_element)
+
     def write_sitemap_config(self, filename: str, label: str):
         sitemap_config_file = open(filename, 'w')
 
@@ -503,6 +526,8 @@ class SitemapConfigBuilder(ConfigBuilder):
             return openhab2.ICON_TOILET
         elif room_name.lower().find('utility_room') >= 0:
             return openhab2.ICON_WASHINGMACHINE
+        elif room_name.lower().find('outside') >= 0:
+            return openhab2.ICON_OUTDOOR
         else:
             return openhab2.ICON_GROUP
 

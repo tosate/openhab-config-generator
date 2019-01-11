@@ -5,6 +5,7 @@ ICON_LIGHT = 'light'
 ICON_GROUNDFLOOR = 'groundfloor'
 ICON_FIRSTFLOOR = 'firstfloor'
 ICON_GARAGE = 'garage'
+ICON_OUTDOOR = 'outdoorlight'
 ICON_KITCHEN = 'kitchen'
 ICON_LIVING_ROOM = 'sofa'
 ICON_BEDROOM = 'bedroom'
@@ -26,6 +27,7 @@ ICON_SUN_CLOUDS = 'sun_clouds'
 ICON_MOON = 'moon'
 ICON_TEMPERATURE = 'temperature'
 ICON_MOTIONDETECTOR = 'motiondetector'
+ICON_SMOKE = 'smoke'
 
 
 class Thing:

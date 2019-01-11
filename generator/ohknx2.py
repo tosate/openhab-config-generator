@@ -144,6 +144,21 @@ class KnxContactChannelType(KnxChannelType):
         return config
 
 
+class KnxSmokeSensorChannelType(KnxChannelType):
+    def __init__(self, name: str, label: str, main_ga: str, dtp: str=None):
+        KnxChannelType.__init__(self, 'Contact', name, label)
+        self.main_ga = main_ga
+        self.dtp = dtp
+
+    def get_knx_parameter_config(self) -> str:
+        if self.dtp:
+            knx_dtp = self.dtp
+        else:
+            knx_dtp = '1.005'
+        config = 'ga="' + knx_dtp + ':' + self.main_ga + '"'
+        return config
+
+
 class KnxNumberChannelType(KnxChannelType):
     def __init__(self, name: str, label: str, main_ga: str):
         KnxChannelType.__init__(self, 'Number', name, label)
@@ -193,3 +208,8 @@ class RollershutterItem(KnxItem):
 class NumberItem(KnxItem):
     def __init__(self, name: str, label: str, state_presentation: str, icon: str, actuator_name: str, channel_name: str):
         KnxItem.__init__(self, 'Number', name, label, state_presentation, icon, actuator_name, channel_name)
+
+
+class SmokeSensorItem(KnxItem):
+    def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
+        KnxItem.__init__(self, 'Contact', name, label, '', icon, actuator_name, channel_name)

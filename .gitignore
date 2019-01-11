@@ -1,0 +1,18 @@
+# Intellij
+generator/__pycache__/
+.idea/
+*.iml
+*.eml
+*.iws
+
+docs/oh2_items\.csv
+
+docs/oh2_knx2\.csv
+
+generator/our_home\.sitemap
+
+generator/homekit\.items
+
+generator/knx\.things
+
+generator/knx2\.items
