@@ -28,6 +28,7 @@ ICON_MOON = 'moon'
 ICON_TEMPERATURE = 'temperature'
 ICON_MOTIONDETECTOR = 'motiondetector'
 ICON_SMOKE = 'smoke'
+ICON_GARAGE_DOOR = 'garagedoor'
 
 
 class Thing:

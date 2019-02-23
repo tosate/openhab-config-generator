@@ -114,6 +114,17 @@ class KnxDimmerChannelType(KnxChannelType):
         return config
 
 
+class KnxStopMoveSwitchChannelType(KnxChannelType):
+    def __init__(self, name: str, label: str, main_ga: str, listening_ga: str):
+        KnxChannelType.__init__(self, 'Rollershutter', name, label)
+        self.main_ga = main_ga
+        self.listening_ga = listening_ga
+
+    def get_knx_parameter_config(self) -> str:
+        config = 'stopMove="' + self.main_ga + '"'
+        return config
+
+
 class KnxRollershutterChannelType(KnxChannelType):
     def __init__(self, name: str, label: str, up_down_ga: str, stop_move_ga: str, position_ga: str,
                  listening_position_ga: str):
@@ -130,32 +141,32 @@ class KnxRollershutterChannelType(KnxChannelType):
 
 
 class KnxContactChannelType(KnxChannelType):
-    def __init__(self, name: str, label: str, main_ga: str, dtp: str=None):
+    def __init__(self, name: str, label: str, main_ga: str, dpt: str=None):
         KnxChannelType.__init__(self, 'Contact', name, label)
         self.main_ga = main_ga
-        self.dtp = dtp
+        self.dpt = dpt
 
     def get_knx_parameter_config(self) -> str:
-        if self.dtp:
-            knx_dtp = self.dtp
+        if self.dpt:
+            knx_dpt = self.dpt
         else:
-            knx_dtp = '1.019'
-        config = 'ga="' + knx_dtp + ':' + self.main_ga + '"'
+            knx_dpt = '1.019'
+        config = 'ga="' + knx_dpt + ':' + self.main_ga + '"'
         return config
 
 
 class KnxSmokeSensorChannelType(KnxChannelType):
-    def __init__(self, name: str, label: str, main_ga: str, dtp: str=None):
+    def __init__(self, name: str, label: str, main_ga: str, dpt: str=None):
         KnxChannelType.__init__(self, 'Contact', name, label)
         self.main_ga = main_ga
-        self.dtp = dtp
+        self.dpt = dpt
 
     def get_knx_parameter_config(self) -> str:
-        if self.dtp:
-            knx_dtp = self.dtp
+        if self.dpt:
+            knx_dpt = self.dpt
         else:
-            knx_dtp = '1.005'
-        config = 'ga="' + knx_dtp + ':' + self.main_ga + '"'
+            knx_dpt = '1.005'
+        config = 'ga="' + knx_dpt + ':' + self.main_ga + '"'
         return config
 
 
@@ -190,9 +201,14 @@ class SwitchItem(KnxItem):
         KnxItem.__init__(self, 'Switch', name, label, '[%s]', icon, actuator_name, channel_name)
 
 
-class DimmableLightbuldItem(KnxItem):
+class DimmableLightbulbItem(KnxItem):
     def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
         KnxItem.__init__(self, 'Dimmer', name, label, '[%d %%]', icon, actuator_name, channel_name)
+
+
+class StopMoveSwitchItem(KnxItem):
+    def __init__(self, name: str, label: str, icon: str, actuator_name: str, channel_name: str):
+        KnxItem.__init__(self, 'Rollershutter', name, label, '', icon, actuator_name, channel_name)
 
 
 class ContactSensorItem(KnxItem):

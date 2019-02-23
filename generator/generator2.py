@@ -32,6 +32,7 @@ TYPE_POWEROUTLET = 'PowerOutlet'
 TYPE_THERMOSTAT = 'Thermostat'
 TYPE_OCCUPANCYSENSOR = 'OccupancySensor'
 TYPE_SMOKESENSOR = 'SmokeSensor'
+TYPE_STOPMOVESWITCH = 'StopMoveSwitch'
 
 FRAME_ALL_ROOMS = 'ALL_ROOMS'
 FRAME_ACTIVE_LIGHTS = 'ACTIVE_LIGHTS'
@@ -74,6 +75,8 @@ class ConfigBuilder:
                 self.process_occupancysensor(row)
             elif entry_type == TYPE_SMOKESENSOR:
                 self.process_smokesensor(row)
+            elif entry_type == TYPE_STOPMOVESWITCH:
+                self.process_stopmoveswitch(row)
 
     def process_lightbulb(self, row: dict):
         pass
@@ -102,6 +105,9 @@ class ConfigBuilder:
     def process_smokesensor(self, row: dict):
         pass
 
+    def process_stopmoveswitch(self, row: dict):
+        pass
+
 
 class KnxThingsConfigBuilder(ConfigBuilder):
     def __init__(self, csv_reader: csv.DictReader):
@@ -125,6 +131,14 @@ class KnxThingsConfigBuilder(ConfigBuilder):
         switch_channel_type = ohknx2.KnxSwitchChannelType(row[COL_CHANNEL_NAME], channel_type_label, row[COL_GA1],
                                                           row[COL_GA2])
         device_thing.add_channel_type(switch_channel_type)
+
+    def process_stopmoveswitch(self, row: dict):
+        device_thing = self.get_knx_device_thing(row[COL_ACTUATOR_NAME], row[COL_ACTUATOR_LABEL],
+                                                 row[COL_ACTUATOR_ADDRESS])
+        channel_type_label = 'Channel' + row[COL_IN_OUT]
+        stopmovesw_channel_type = ohknx2.KnxStopMoveSwitchChannelType(row[COL_CHANNEL_NAME], channel_type_label, row[COL_GA1],
+                                                                      row[COL_GA2])
+        device_thing.add_channel_type(stopmovesw_channel_type)
 
     def process_dimmer(self, row: dict):
         device_thing = self.get_knx_device_thing(row[COL_ACTUATOR_NAME], row[COL_ACTUATOR_LABEL],
@@ -260,17 +274,22 @@ class ItemsConfigBuilder(ConfigBuilder):
 
     def process_dimmer(self, row: dict):
         self.add_room_group(row)
-        dimmable_light_item = ohknx2.DimmableLightbuldItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT,
-                                                               row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        dimmable_light_item = ohknx2.DimmableLightbulbItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_LIGHT,
+                                                           row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
         dimmable_light_item.add_group(self.dimmers_group.name)
         self.items.append(dimmable_light_item)
 
         # homekit
-        hk_dimmable_light_item = ohknx2.DimmableLightbuldItem(HK_NAME_PERFIX + row[COL_NAME], row[COL_LABEL], '',
+        hk_dimmable_light_item = ohknx2.DimmableLightbulbItem(HK_NAME_PERFIX + row[COL_NAME], row[COL_LABEL], '',
                                                               row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
         hk_dimmable_light_item.state_presentation = ''
         hk_dimmable_light_item.add_tag(homekit.DIMMABLE_LGHTING)
         self.hk_items.append(hk_dimmable_light_item)
+
+    def process_stopmoveswitch(self, row: dict):
+        start_stop_switch_item = ohknx2.StopMoveSwitchItem(row[COL_NAME], row[COL_LABEL], openhab2.ICON_GARAGE_DOOR,
+                                                           row[COL_ACTUATOR_NAME], row[COL_CHANNEL_NAME])
+        self.items.append(start_stop_switch_item)
 
     def process_contact_sensor(self, row: dict):
         self.add_room_group(row)
