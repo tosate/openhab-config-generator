@@ -67,9 +67,9 @@ class KnxBridge(openhab2.Thing):
         self.parameters['type'] = 'TUNNEL'
         self.parameters['readingPause'] = 50
         self.parameters['responseTimeout'] = 10
-        self.parameters['readRetries'] = 3
-        self.parameters['autoreconnectPeriod'] = 1
-        self.parameters['localSourceAddress'] = '0.0.0'
+        self.parameters['readRetriesLimit'] = 3
+        self.parameters['autoReconnectPeriod'] = 60
+        self.parameters['localSourceAddr'] = '0.0.0'
         self.things = []
 
     def add_thing(self, thing: KnxThing):
@@ -126,8 +126,8 @@ class KnxStopMoveSwitchChannelType(KnxChannelType):
 
 
 class KnxRollershutterChannelType(KnxChannelType):
-    def __init__(self, name: str, label: str, up_down_ga: str, stop_move_ga: str, position_ga: str,
-                 listening_position_ga: str):
+    def __init__(self, name: str, label: str, up_down_ga: str, stop_move_ga: str, position_ga: str=None,
+                 listening_position_ga: str=None):
         KnxChannelType.__init__(self, 'Rollershutter', name, label)
         self.up_down_ga = up_down_ga
         self.stop_move_ga = stop_move_ga
@@ -135,8 +135,9 @@ class KnxRollershutterChannelType(KnxChannelType):
         self.listening_position_ga = listening_position_ga
 
     def get_knx_parameter_config(self) -> str:
-        config = 'upDown="' + self.up_down_ga + '", stopMove="' + self.stop_move_ga + '", position="'\
-                 + self.position_ga + '+<' + self.listening_position_ga + '"'
+        config = 'upDown="' + self.up_down_ga + '", stopMove="' + self.stop_move_ga + '"'
+        if self.position_ga:
+            config = config + ', position="' + self.position_ga + '+<' + self.listening_position_ga + '"'
         return config
 
 

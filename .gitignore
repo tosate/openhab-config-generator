@@ -16,3 +16,7 @@ generator/homekit\.items
 generator/knx\.things
 
 generator/knx2\.items
+
+*.csv
+
+*.things

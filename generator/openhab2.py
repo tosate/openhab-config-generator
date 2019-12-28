@@ -238,6 +238,21 @@ class SitemapSwitchElement(SitemapElement):
     def __init__(self, item_name: str, label: str, state_presentation: str, icon: str, visibility: str=None):
         SitemapElement.__init__(self, label, state_presentation, icon, item_name, visibility)
         self.type = 'Switch'
+        self.mappings = {}
+
+    def get_config(self) -> str:
+        config = SitemapElement.get_config(self)
+
+        if len(self.mappings) > 0:
+            config = config[:len(config) - 1]
+
+            config = config + ' mappings=['
+            for key in self.mappings.keys():
+                config = config + key + '="' + self.mappings.get(key) + '",'
+
+            config = config[:len(config) - 1] + ']\n'
+
+        return config
 
 
 class SitemapSliderElement(SitemapElement):

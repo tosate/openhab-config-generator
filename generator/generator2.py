@@ -497,6 +497,12 @@ class SitemapConfigBuilder(ConfigBuilder):
         text_element = openhab2.SitemapTextElement(row[COL_NAME], row[COL_LABEL], '', openhab2.ICON_SMOKE)
         # self.frames[FRAME_ALL_ROOMS].add_sitemap_element(text_element)
 
+    def process_stopmoveswitch(self, row: dict):
+        room_sitemap_element = self.get_room_sitemap_element(row[COL_ROOM_NAME], row[COL_ROOM_LABEL])
+        switch_element = openhab2.SitemapSwitchElement(row[COL_NAME], row[COL_LABEL], '', openhab2.ICON_GARAGE_DOOR)
+        switch_element.mappings['MOVE'] = 'Bewegen'
+        room_sitemap_element.add_element(switch_element)
+
     def write_sitemap_config(self, filename: str, label: str):
         sitemap_config_file = open(filename, 'w')
 
@@ -513,8 +519,10 @@ class SitemapConfigBuilder(ConfigBuilder):
         sitemap_config_file.write('\n')
         sitemap_config_file.write(self.frames[FRAME_OPEN_ROLLERSHUTTERS].get_config())
         sitemap_config_file.write('\n')
-        sitemap_config_file.write(self.frames[FRAME_OPEN_WINDOWS].get_config())
-        sitemap_config_file.write('\n')
+        if len(self.frames[FRAME_OPEN_WINDOWS].sitemap_elements) > 0:
+            sitemap_config_file.write(self.frames[FRAME_OPEN_WINDOWS].get_config())
+            sitemap_config_file.write('\n')
+
         sitemap_config_file.write(self.frames[FRAME_SPECIAL_FUNCTIONS].get_config())
         sitemap_config_file.write('\n')
 
